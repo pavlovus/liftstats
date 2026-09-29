@@ -78,7 +78,7 @@ There are exactly **two ML components** in this project. Keep both intentionally
 ### 5.1 Progression Prediction (Regression) — owned by Person C
 **Question answered:** "How much more can I realistically expect to lift next year?"
 
-- **Data needed:** Subset of lifters with 2+ recorded meets over time (extract from the multi-meet time series built in preprocessing).
+- **Data needed:** Subset of lifters with 2+ recorded meets over time (extract from the multi-meet time series built in preprocessing). **CRITICAL: Must aggressively filter out "one-meet wonders" (Survivorship Bias). The model must only be trained on lifters with a proven history (e.g., 3+ meets) so it learns realistic progression arcs, rather than learning that "most people just quit".**
 - **Features:** current total/lift, age, estimated training age (time between first and current meet as a proxy), bodyweight change.
 - **Target:** total/lift at a future point (e.g., ~12 months later).
 - **Model:** simple linear or polynomial regression. Do not reach for complex models — defensibility and interpretability matter more than accuracy here.
@@ -164,6 +164,7 @@ After that, each person works a full vertical slice (their own data/ML logic + t
 2. No open dataset of "regular gymgoer" lifts exists (confirmed after real investigation — see §3.2); this is a documented, legitimate gap in the field, not a shortcut taken.
 3. The regression model's predictions are estimates based on population trends, not individualized coaching advice — the app should never claim clinical/medical precision.
 4. Clustering into archetypes is a simplification (real training styles are more nuanced than 3–4 clusters) — communicate cluster results as a rough, fun categorization, not a definitive label.
+5. **Survivorship Bias in Percentiles**: The dataset is heavily skewed by "one-meet wonders" who competed once and quit. The percentiles rank a user against *everyone who ever tried*, not just dedicated lifters.
 
 ---
 
