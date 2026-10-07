@@ -1,5 +1,5 @@
 """
-Tested vs. untested transparency logic.
+Tested vs. untested transparency logic (Person B, FULL_CONTEXT.md section 6.2).
 
 Also hosts the lifter-table builder shared with cluster_archetypes.py.
 
@@ -59,6 +59,10 @@ def percentile_of(values, x: float) -> float:
 
 
 def _ordinal(n: float) -> str:
+    if n < 1:
+        return "under 1st"
+    if n > 99:
+        return "over 99th"
     n = int(round(n))
     suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
     return f"{n}{suffix}"

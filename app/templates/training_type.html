@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Your training type - LiftStats</title>
+<title>Your training type – LiftStats</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root {
@@ -109,6 +109,8 @@
   FIELDS.forEach(f => { if (qs.has(f)) $(f).value = qs.get(f); });
 
   function ordinal(n) {
+    if (n < 1) return "Under 1st";
+    if (n > 99) return "Over 99th";
     const v = Math.round(n), s = ["th", "st", "nd", "rd"], r = v % 100;
     return v + (s[(r - 20) % 10] || s[r] || s[0]);
   }
