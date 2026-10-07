@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import time
+import glob
 
 def extract_mean_age(age_class):
     if pd.isna(age_class):
@@ -16,7 +17,7 @@ def extract_mean_age(age_class):
 def main():
     start_time = time.time()
     
-    RAW_DATA_PATH = 'data/raw/dataset/openpowerlifting-2026-09-19-ed07773f.csv'
+    RAW_DATA_PATH = sorted(glob.glob("data/raw/dataset/openpowerlifting-*.csv"))[-1]
     OUTPUT_PATH = 'data/processed/clean_data.csv'
 
     # 1. Load Data
