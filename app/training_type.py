@@ -16,7 +16,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, render_template, request
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -30,9 +30,20 @@ def _bundle():
     return joblib.load(ROOT / "models" / "kmeans_archetypes.joblib")
 
 
-@lru_cache(maxsize=1)
-def _peers():
-    return tt.build_lifter_table(pd.read_csv(tt.CLEAN_CSV))
+def _engine():
+    """One PercentileEngine for the whole app. If Person A's app code already stored one in
+    app.config["PERCENTILE_ENGINE"], we reuse it instead of loading 1.5M rows a second time."""
+    eng = current_app.config.get("PERCENTILE_ENGINE")
+    if eng is None:
+        eng = current_app.config["PERCENTILE_ENGINE"] = tt.load_engine()
+    return eng
+
+
+def _buckets():
+    b = current_app.config.get("TOGGLE_BUCKETS")
+    if b is None:
+        b = current_app.config["TOGGLE_BUCKETS"] = tt.build_bucket_tables(_engine().df)
+    return b
 
 
 def classify(sex: str, squat: float, bench: float, deadlift: float) -> dict:
@@ -76,7 +87,7 @@ def api():
         return jsonify(error="Unknown lift."), 400
 
     try:
-        toggle = tt.tested_toggle(_peers(), sex, age, bw, lift, values[lift])
+        toggle = tt.tested_toggle(_engine(), _buckets(), sex, age, bw, lift, values[lift])
     except ValueError as e:
         return jsonify(error=str(e)), 400
 

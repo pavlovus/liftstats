@@ -31,7 +31,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 
-from tested_toggle import CLEAN_CSV, PROJECT_ROOT, build_lifter_table
+from tested_toggle import CLEAN_CSV, PROJECT_ROOT
 
 MODELS_DIR = PROJECT_ROOT / "models"
 FIG_DIR = PROJECT_ROOT / "notebooks" / "figures"
@@ -43,6 +43,22 @@ K_RANGE = range(2, 9)              # k values evaluated
 K_CHOOSE_MIN, K_CHOOSE_MAX = 3, 6  # keep archetypes interpretable
 BALANCED_PP = 1.5                  # max deviation (percentage points) still called "Balanced"
 SEED = 42
+
+
+def build_lifter_table(df: pd.DataFrame) -> pd.DataFrame:
+    """Full-power (SBD) meets only, valid lifts, ONE row per lifter (their best total).
+    Clustering-specific: stops repeat competitors from dominating the clusters."""
+    df = df.copy()
+    if "event" in df.columns:
+        df = df[df["event"] == "SBD"]
+    needed = ["lifter_id", "sex", "age", "bodyweight", "squat", "bench", "deadlift", "total"]
+    df = df.dropna(subset=needed)
+    df = df[(df[["squat", "bench", "deadlift", "total"]] > 0).all(axis=1)]
+    # tested_status is a bool in clean_data.csv; the string route also tolerates "Yes"/"Tested"
+    df["is_tested"] = df["tested_status"].astype(str).str.strip().str.lower().isin(
+        {"true", "yes", "y", "1", "tested"})
+    df = df.sort_values("total", ascending=False).drop_duplicates("lifter_id")
+    return df.reset_index(drop=True)
 
 
 def prepare_features(path: Path = CLEAN_CSV) -> pd.DataFrame:
