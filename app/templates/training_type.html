@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your training type – LiftStats</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --ink: #14202b; --muted: #5d6b79;
+    --line: #d9dee4; --accent: #1f5f8b; --accent-ink: #ffffff; --warn: #a4372b;
+    --bar-you: #1f5f8b; --bar-typ: #b9c4cf;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #11181f; --surface: #19232d; --ink: #e8edf2; --muted: #9aa8b6;
+            --line: #2c3a47; --accent: #6fb1dc; --accent-ink: #0d1a24; --warn: #ef8a7d;
+            --bar-you: #6fb1dc; --bar-typ: #4a5b6a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  h2 { font-size: 1.1rem; margin: 0 0 8px; }
+  p.lead { color: var(--muted); margin: 0 0 20px; }
+  section { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+            padding: 16px; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  label { display: block; font-size: .9rem; color: var(--muted); }
+  input, select { width: 100%; margin-top: 4px; padding: 10px; font: inherit; color: var(--ink);
+                  background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  button.primary { width: 100%; margin-top: 16px; padding: 12px; font: inherit; font-weight: 600;
+                   background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  #error { color: var(--warn); margin-top: 12px; min-height: 1.4em; }
+  #results[hidden] { display: none; }
+  .type-name { font-size: 2rem; font-weight: 700; line-height: 1.15; margin: 0 0 4px; }
+  .muted { color: var(--muted); }
+  .chart-box { position: relative; height: 240px; margin-top: 12px; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 8px 0 16px; }
+  .seg button { flex: 1; padding: 10px 4px; font: inherit; background: transparent; color: var(--ink);
+                border: 0; border-right: 1px solid var(--line); cursor: pointer; }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .pct { font-size: 3rem; font-weight: 700; line-height: 1; }
+  .pct small { font-size: 1.1rem; font-weight: 500; color: var(--muted); }
+  @media (max-width: 420px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Your training type</h1>
+  <p class="lead">See which lifter profile your squat, bench and deadlift match, and how your ranking changes with the kind of federation you compare against.</p>
+
+  <section>
+    <form id="form" novalidate>
+      <div class="grid">
+        <label>Sex
+          <select id="sex"><option value="M">Male</option><option value="F">Female</option></select>
+        </label>
+        <label>Age (years)<input id="age" type="number" min="1" step="1" inputmode="numeric"></label>
+        <label>Bodyweight (kg)<input id="bodyweight" type="number" min="1" step="0.1" inputmode="decimal"></label>
+        <label>Compare this lift
+          <select id="lift">
+            <option value="total">Total</option><option value="squat">Squat</option>
+            <option value="bench">Bench</option><option value="deadlift">Deadlift</option>
+          </select>
+        </label>
+        <label>Squat (kg)<input id="squat" type="number" min="1" step="0.5" inputmode="decimal"></label>
+        <label>Bench (kg)<input id="bench" type="number" min="1" step="0.5" inputmode="decimal"></label>
+        <label>Deadlift (kg)<input id="deadlift" type="number" min="1" step="0.5" inputmode="decimal"></label>
+      </div>
+      <button class="primary" type="submit">Find my training type</button>
+      <div id="error" role="alert"></div>
+    </form>
+  </section>
+
+  <div id="results" hidden>
+    <section>
+      <h2>Your lift split matches</h2>
+      <p class="type-name" id="typeName"></p>
+      <p class="muted" id="typeDesc"></p>
+      <div class="chart-box"><canvas id="chart" aria-label="Your lift split compared with your archetype's typical split" role="img"></canvas></div>
+      <p class="muted" style="font-size:.85rem;margin-top:12px">Archetypes are a rough grouping of how competitors split their total, not a verdict on your training.</p>
+    </section>
+
+    <section>
+      <h2>How your ranking shifts by federation type</h2>
+      <p class="muted" id="peerInfo" style="margin:0"></p>
+      <div class="seg" role="group" aria-label="Federation filter">
+        <button type="button" data-view="all" aria-pressed="true">Everyone</button>
+        <button type="button" data-view="tested" aria-pressed="false">Tested only</button>
+        <button type="button" data-view="untested" aria-pressed="false">Untested only</button>
+      </div>
+      <div class="pct" id="pct"></div>
+      <p class="muted" id="pctN" style="margin:4px 0 12px"></p>
+      <p id="explainer"></p>
+    </section>
+  </div>
+</main>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const FIELDS = ["sex", "age", "bodyweight", "squat", "bench", "deadlift", "lift"];
+  let chart = null, toggle = null;
+
+  // Prefill from the query string, e.g. /training-type?sex=F&age=28&bodyweight=62&squat=100
+  const qs = new URLSearchParams(location.search);
+  FIELDS.forEach(f => { if (qs.has(f)) $(f).value = qs.get(f); });
+
+  function ordinal(n) {
+    if (n < 1) return "Under 1st";
+    if (n > 99) return "Over 99th";
+    const v = Math.round(n), s = ["th", "st", "nd", "rd"], r = v % 100;
+    return v + (s[(r - 20) % 10] || s[r] || s[0]);
+  }
+
+  function showView(view) {
+    document.querySelectorAll(".seg button").forEach(b =>
+      b.setAttribute("aria-pressed", String(b.dataset.view === view)));
+    const v = toggle.views[view];
+    if (v.percentile === null) {
+      $("pct").textContent = "Not enough data";
+      $("pctN").textContent = `Only ${v.n} lifters in this group – at least 50 are needed.`;
+    } else {
+      $("pct").innerHTML = `${ordinal(v.percentile)} <small>percentile</small>`;
+      $("pctN").textContent = `Compared with ${v.n.toLocaleString()} lifters in your group.`;
+    }
+  }
+
+  function render(data) {
+    const a = data.archetype;
+    $("typeName").textContent = a.label;
+    $("typeDesc").textContent =
+      `Your lifts: squat ${a.user_shares[0]}%, bench ${a.user_shares[1]}%, deadlift ${a.user_shares[2]}% of your total. ` +
+      `Typical for this type among ${$("sex").value === "F" ? "women" : "men"}: ` +
+      `${a.cluster_shares[0]}% / ${a.cluster_shares[1]}% / ${a.cluster_shares[2]}%.`;
+
+    if (chart) chart.destroy();
+    const css = getComputedStyle(document.documentElement);
+    chart = new Chart($("chart"), {
+      type: "bar",
+      data: {
+        labels: ["Squat", "Bench", "Deadlift"],
+        datasets: [
+          { label: "You", data: a.user_shares, backgroundColor: css.getPropertyValue("--bar-you").trim() },
+          { label: "Typical " + a.label, data: a.cluster_shares, backgroundColor: css.getPropertyValue("--bar-typ").trim() }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true, title: { display: true, text: "% of total" } } },
+        plugins: { legend: { position: "bottom" } }
+      }
+    });
+
+    toggle = data.toggle;
+    const sexWord = $("sex").value === "F" ? "women" : "men";
+    $("peerInfo").textContent =
+      `${toggle.lift[0].toUpperCase() + toggle.lift.slice(1)} of ${toggle.value} kg vs ${sexWord}, ` +
+      `age bracket ${toggle.age_bracket}, weight class ${toggle.weight_class}.`;
+    $("explainer").textContent = toggle.explainer;
+    showView("all");
+    $("results").hidden = false;
+    $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  document.querySelectorAll(".seg button").forEach(b =>
+    b.addEventListener("click", () => toggle && showView(b.dataset.view)));
+
+  $("form").addEventListener("submit", async e => {
+    e.preventDefault();
+    $("error").textContent = "";
+    const body = Object.fromEntries(FIELDS.map(f => [f, $(f).value]));
+    try {
+      const res = await fetch("/api/training-type", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) { $("error").textContent = data.error || "Something went wrong."; return; }
+      render(data);
+    } catch (err) {
+      $("error").textContent = "Could not reach the server. Check that the app is running.";
+    }
+  });
+</script>
+</body>
+</html>
