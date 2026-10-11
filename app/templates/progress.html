@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your progress – LiftStats</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --ink: #14202b; --muted: #5d6b79;
+    --line: #d9dee4; --accent: #1f5f8b; --accent-ink: #ffffff; --warn: #a4372b;
+    --bar-you: #1f5f8b; --bar-band: #b9c4cf;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #11181f; --surface: #19232d; --ink: #e8edf2; --muted: #9aa8b6;
+            --line: #2c3a47; --accent: #6fb1dc; --accent-ink: #0d1a24; --warn: #ef8a7d;
+            --bar-you: #6fb1dc; --bar-band: #4a5b6a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  h2 { font-size: 1.1rem; margin: 0 0 8px; }
+  p.lead { color: var(--muted); margin: 0 0 20px; }
+  section { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+            padding: 16px; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  label { display: block; font-size: .9rem; color: var(--muted); }
+  input, select { width: 100%; margin-top: 4px; padding: 10px; font: inherit; color: var(--ink);
+                  background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  button.primary { width: 100%; margin-top: 16px; padding: 12px; font: inherit; font-weight: 600;
+                   background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  #error { color: var(--warn); margin-top: 12px; min-height: 1.4em; }
+  #results[hidden] { display: none; }
+  .muted { color: var(--muted); }
+  .chart-box { position: relative; height: 240px; margin-top: 12px; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 8px 0 16px; }
+  .seg button { flex: 1; padding: 10px 4px; font: inherit; background: transparent; color: var(--ink);
+                border: 0; border-right: 1px solid var(--line); cursor: pointer; }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .pct { font-size: 3rem; font-weight: 700; line-height: 1; }
+  .pct small { font-size: 1.1rem; font-weight: 500; color: var(--muted); }
+  .forecast { font-size: 2.4rem; font-weight: 700; line-height: 1.1; margin: 4px 0 4px; }
+  .forecast small { font-size: 1rem; font-weight: 500; color: var(--muted); display: block; margin-top: 6px; }
+  /* Share card gets a distinct look so users see what will be exported */
+  #share-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+                padding: 20px; margin-bottom: 16px; }
+  #share-card .brand { font-size: .8rem; letter-spacing: .08em; text-transform: uppercase;
+                       color: var(--muted); margin-bottom: 8px; }
+  #share-card .headline { font-size: 1.4rem; font-weight: 700; margin: 0 0 12px; }
+  #share-card .row { display: flex; justify-content: space-between; padding: 8px 0;
+                     border-top: 1px solid var(--line); font-size: .95rem; }
+  #share-card .row:first-of-type { border-top: 0; }
+  #share-card .row b { font-variant-numeric: tabular-nums; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .actions button { padding: 12px; font: inherit; font-weight: 600; border-radius: 8px;
+                    border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .actions button:hover { border-color: var(--accent); color: var(--accent); }
+  @media (max-width: 420px) { .grid { grid-template-columns: 1fr; } .actions { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Your progress</h1>
+  <p class="lead">See how much you could realistically add to your total in the next year, and how your ranking shifts between the Wilks and DOTS scoring formulas.</p>
+
+  <section>
+    <form id="form" novalidate>
+      <div class="grid">
+        <label>Gender
+          <select id="sex"><option value="M">Male</option><option value="F">Female</option></select>
+        </label>
+        <label>Age (years)<input id="age" type="number" min="14" step="1" inputmode="numeric"></label>
+        <label>Bodyweight (kg)<input id="bodyweight" type="number" min="30" step="0.1" inputmode="decimal"></label>
+        <label>Current total (kg)<input id="total" type="number" min="50" step="0.5" inputmode="decimal"></label>
+        <label>Training age (years)<input id="training_age" type="number" min="0" step="0.5" value="1" inputmode="decimal"></label>
+        <label>Meets so far<input id="meets_so_far" type="number" min="1" step="1" value="2" inputmode="numeric"></label>
+      </div>
+      <button class="primary" type="submit">Predict my next year</button>
+      <div id="error" role="alert"></div>
+    </form>
+  </section>
+
+  <div id="results" hidden>
+    <section>
+      <h2>Next-year forecast</h2>
+      <p class="forecast" id="forecast"></p>
+      <p class="muted" id="forecastNote" style="margin:0"></p>
+      <div class="chart-box"><canvas id="chart" aria-label="Current total compared with the predicted range one year from now" role="img"></canvas></div>
+    </section>
+
+    <section>
+      <h2>Wilks vs DOTS</h2>
+      <p class="muted" style="margin:0 0 4px">Both formulas adjust your total for bodyweight. Switch to see how your percentile shifts.</p>
+      <div class="seg" role="group" aria-label="Scoring formula">
+        <button type="button" data-view="wilks" aria-pressed="true">Wilks</button>
+        <button type="button" data-view="dots" aria-pressed="false">DOTS</button>
+      </div>
+      <div class="pct" id="pct"></div>
+      <p class="muted" id="pctN" style="margin:4px 0 12px"></p>
+      <p id="explainer"></p>
+    </section>
+
+    <section>
+      <h2>Your shareable card</h2>
+      <p class="muted" style="margin:0 0 12px">Download the image, or copy the text — no login, no tracking.</p>
+
+      <div id="share-card">
+        <div class="brand">LiftStats · OpenPowerlifting</div>
+        <p class="headline" id="cardHeadline"></p>
+        <div class="row"><span>Current total</span><b id="cardTotal"></b></div>
+        <div class="row"><span>Predicted next year</span><b id="cardPred"></b></div>
+        <div class="row"><span>Wilks</span><b id="cardWilks"></b></div>
+        <div class="row"><span>DOTS</span><b id="cardDots"></b></div>
+      </div>
+
+      <div class="actions">
+        <button type="button" id="downloadBtn">⬇ Download card</button>
+        <button type="button" id="copyBtn">📋 Copy summary</button>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const FIELDS = ["sex", "age", "bodyweight", "total", "training_age", "meets_so_far"];
+  let chart = null, data = null;
+
+  // Prefill from query string, e.g. /progress?sex=F&age=28&bodyweight=62&total=250
+  const qs = new URLSearchParams(location.search);
+  FIELDS.forEach(f => { if (qs.has(f)) $(f).value = qs.get(f); });
+
+  function ordinal(n) {
+    if (n < 1) return "Under 1st";
+    if (n > 99) return "Over 99th";
+    const v = Math.round(n), s = ["th", "st", "nd", "rd"], r = v % 100;
+    return v + (s[(r - 20) % 10] || s[r] || s[0]);
+  }
+
+  function showView(view) {
+    document.querySelectorAll(".seg button").forEach(b =>
+      b.setAttribute("aria-pressed", String(b.dataset.view === view)));
+    const v = data.views[view];
+    $("pct").innerHTML = `${ordinal(v.percentile)} <small>percentile</small>`;
+    $("pctN").textContent =
+      `Score ${v.score.toFixed(1)} vs ${v.n.toLocaleString()} lifters in your group.`;
+  }
+
+  function render(resp) {
+    data = resp;
+
+    // Forecast
+    const p = resp.prediction;
+    $("forecast").innerHTML =
+      `+${p.point.toFixed(0)} kg <small>most likely range +${p.lo.toFixed(0)} to +${p.hi.toFixed(0)} kg</small>`;
+    $("forecastNote").textContent =
+      `Based on ${resp.n_train.toLocaleString()} lifters with 3+ meets. ` +
+      `Individual results vary — this is a population trend, not coaching advice.`;
+
+    // Chart: current total vs predicted range
+    if (chart) chart.destroy();
+    const css = getComputedStyle(document.documentElement);
+    chart = new Chart($("chart"), {
+      type: "bar",
+      data: {
+        labels: ["Current total", "Predicted (1 yr)"],
+        datasets: [
+          { label: "kg", data: [resp.total, p.point], backgroundColor: css.getPropertyValue("--bar-you").trim() }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: "y",
+        scales: { x: { beginAtZero: true, title: { display: true, text: "Total (kg)" } } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              afterLabel: ctx => ctx.dataIndex === 1
+                ? `Likely range: +${p.lo.toFixed(0)} to +${p.hi.toFixed(0)} kg`
+                : ""
+            }
+          }
+        }
+      }
+    });
+
+    // Toggle + explainer
+    $("explainer").textContent = resp.explainer;
+    showView("wilks");
+
+    // Share card content
+    $("cardHeadline").textContent = `Next year: +${p.point.toFixed(0)} kg total`;
+    $("cardTotal").textContent = `${resp.total} kg`;
+    $("cardPred").textContent  = `+${p.point.toFixed(0)} kg (${p.lo.toFixed(0)}–${p.hi.toFixed(0)})`;
+    $("cardWilks").textContent = `${resp.views.wilks.score.toFixed(1)} · ${ordinal(resp.views.wilks.percentile)} pct`;
+    $("cardDots").textContent  = `${resp.views.dots.score.toFixed(1)} · ${ordinal(resp.views.dots.percentile)} pct`;
+
+    $("results").hidden = false;
+    $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  document.querySelectorAll(".seg button").forEach(b =>
+    b.addEventListener("click", () => data && showView(b.dataset.view)));
+
+  $("form").addEventListener("submit", async e => {
+    e.preventDefault();
+    $("error").textContent = "";
+    const body = Object.fromEntries(FIELDS.map(f => [f, $(f).value]));
+    try {
+      const res = await fetch("/api/progress", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+      });
+      const resp = await res.json();
+      if (!res.ok) { $("error").textContent = resp.error || "Something went wrong."; return; }
+      render(resp);
+    } catch (err) {
+      $("error").textContent = "Could not reach the server. Check that the app is running.";
+    }
+  });
+
+  // Download card as PNG
+  $("downloadBtn").addEventListener("click", async () => {
+    const card = $("share-card");
+    const canvas = await html2canvas(card, { backgroundColor: null, scale: 2 });
+    const a = document.createElement("a");
+    a.download = "liftstats-progress.png";
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+  });
+
+  // Copy summary text
+  $("copyBtn").addEventListener("click", () => {
+    if (!data) return;
+    const p = data.prediction;
+    const text =
+      `My LiftStats progress 🔥\n` +
+      `Current total: ${data.total} kg\n` +
+      `Predicted next year: +${p.point.toFixed(0)} kg (range +${p.lo.toFixed(0)}–${p.hi.toFixed(0)})\n` +
+      `Wilks: ${data.views.wilks.score.toFixed(1)} (${ordinal(data.views.wilks.percentile)} pct)\n` +
+      `DOTS: ${data.views.dots.score.toFixed(1)} (${ordinal(data.views.dots.percentile)} pct)`;
+    navigator.clipboard.writeText(text).then(() => {
+      $("copyBtn").textContent = "✅ Copied!";
+      setTimeout(() => $("copyBtn").textContent = "📋 Copy summary", 1500);
+    });
+  });
+</script>
+</body>
+</html>
