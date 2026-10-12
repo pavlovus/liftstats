@@ -1,13 +1,26 @@
-# liftstats
+# LiftStats
 
-1. download_data.py       
+LiftStats analyzes powerlifting meet results and provides training-type and
+progression views.
 
-2. preprocess.py         
+## Data and model workflow
 
-3. build_longitudinal.py    
+Run the data and model steps from the repository root:
 
-4. train_progression_model.py 
+1. `python download_data.py`
+2. `python preprocess.py`
+3. `python scripts/build_longitudinal.py`
+4. `python scripts/train_progression_model.py`
 
-person b: http://localhost:5000/training-type
+## Run the app
 
-person c: http://localhost:5000/progress
+Install the app dependencies from `app/requirements.txt`, then start the Flask
+app from the `app/` directory:
+
+```sh
+pip install -r requirements.txt
+python app.py
+```
+
+- Training type: <http://localhost:5000/training-type>
+- Progression: <http://localhost:5000/progress>

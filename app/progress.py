@@ -1,31 +1,24 @@
 """Person C — Progression prediction + Wilks/DOTS toggle + share card."""
-import os
 import pickle
 from pathlib import Path
 import pandas as pd
 from flask import Blueprint, render_template, request, jsonify
+
 from scoring import wilks, dots
 from wilks_dots_toggle import percentiles_for
 
 ROOT = Path(__file__).resolve().parent.parent
 
-progress_bp = Blueprint('progress', __name__)
+progress_bp = Blueprint('progress', __name__, template_folder='templates')
 
 
-progress_bp = Blueprint('progress', __name__)
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(current_dir, '..', 'models', 'progression_model.pkl')
-
-# Load once at import time
-with open(model_path, 'rb') as f:
+# Load model once at import
+with open(ROOT / 'models' / 'progression_model.pkl', 'rb') as f:
     _b = pickle.load(f)
-MODEL    = _b['model']
+MODEL    = _b['model']     # sklearn Pipeline (StandardScaler → Ridge)
 FEATURES = _b['features']
-SIGMA    = _b['sigma']
-
-# Small constant for "population trend, not coaching" message
-N_TRAIN_HINT = 120_000   # update after final training run; read from pickle if you store it
+Q10      = _b['q10']       # 10th percentile of test residuals
+Q90      = _b['q90']       # 90th percentile of test residuals
 
 
 EXPLAINER = (
@@ -36,13 +29,19 @@ EXPLAINER = (
 
 
 def _predict(age, bw, wilks_score, training_age, meets):
+    """Predict 1-year total gain (kg) and an 80% prediction interval.
+
+    The interval is point + [q10, q90], where q10/q90 are the 10th and
+    90th percentiles of test-set residuals. This is not a ±σ range:
+    gains are right-skewed, so percentile residuals are the honest choice.
+    """
     row = pd.DataFrame([{
         'age': age, 'bodyweight': bw, 'wilks': wilks_score,
         'training_age_years': training_age,
         'meets_so_far': meets, 'days_to_next': 365.0,
     }])[FEATURES]
     point = float(MODEL.predict(row)[0])
-    return point, point - 1.28 * SIGMA, point + 1.28 * SIGMA
+    return point, point + Q10, point + Q90
 
 
 @progress_bp.route('/progress')
@@ -58,42 +57,49 @@ def api_progress():
         age   = float(body['age'])
         bw    = float(body['bodyweight'])
         total = float(body['total'])
-        t_age = float(body.get('training_age', 1))
-        meets = int(body.get('meets_so_far', 2))
+        t_age = float(body['training_age'])
+        meets = int(body['meets_so_far'])
     except (KeyError, TypeError, ValueError) as e:
-        return jsonify({'error': f'Invalid input: {e}'}), 400
+        return jsonify({'error': f'All fields are required. ({e})'}), 400
 
-    # Sanity checks
+    # Server-side sanity checks (browser already enforces most via required/min)
     if not (14 <= age <= 100):
         return jsonify({'error': 'Age must be between 14 and 100.'}), 400
     if not (30 <= bw <= 250):
         return jsonify({'error': 'Bodyweight must be between 30 and 250 kg.'}), 400
     if not (50 <= total <= 1500):
         return jsonify({'error': 'Total must be between 50 and 1500 kg.'}), 400
+    if not (0 <= t_age <= 40):
+        return jsonify({'error': 'Years training must be between 0 and 40.'}), 400
+    if meets < 0:
+        return jsonify({'error': 'Competitions attended cannot be negative.'}), 400
+
+    # UI is 1-based ("this is my Nth meet"); model was trained on 0-based
+    # cumcount. For non-competitors entering 0, we clamp to 0 (= first-meet).
+    model_meets = max(meets - 1, 0)
 
     w = wilks(sex, bw, total)
     d = dots(sex, bw, total)
-    point, lo, hi = _predict(age, bw, w, t_age, meets)
+    point, lo, hi = _predict(age, bw, w, t_age, model_meets)
     pcts = percentiles_for(sex, age, w, d)
 
     return jsonify({
         'total': total,
-        'n_train': N_TRAIN_HINT,
         'prediction': {
             'point': round(point, 1),
-            'lo': round(lo, 1),
-            'hi': round(hi, 1),
+            'lo':    round(lo, 1),
+            'hi':    round(hi, 1),
         },
         'views': {
             'wilks': {
-                'score': round(w, 1),
+                'score':      round(w, 1),
                 'percentile': pcts.get('wilks_pct'),
-                'n': pcts.get('n', 0),
+                'n':          pcts.get('n', 0),
             },
             'dots': {
-                'score': round(d, 1),
+                'score':      round(d, 1),
                 'percentile': pcts.get('dots_pct'),
-                'n': pcts.get('n', 0),
+                'n':          pcts.get('n', 0),
             },
         },
         'explainer': EXPLAINER,
