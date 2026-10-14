@@ -1,24 +1,33 @@
 """Person C — Progression prediction + Wilks/DOTS toggle + share card."""
 import pickle
+import sys
 from pathlib import Path
 import pandas as pd
 from flask import Blueprint, render_template, request, jsonify
 
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / 'scripts'))
+
 from scoring import wilks, dots
 from wilks_dots_toggle import percentiles_for
 
-ROOT = Path(__file__).resolve().parent.parent
-
 progress_bp = Blueprint('progress', __name__, template_folder='templates')
 
+_bundle = None
 
-# Load model once at import
-with open(ROOT / 'models' / 'progression_model.pkl', 'rb') as f:
-    _b = pickle.load(f)
-MODEL    = _b['model']     # sklearn Pipeline (StandardScaler → Ridge)
-FEATURES = _b['features']
-Q10      = _b['q10']       # 10th percentile of test residuals
-Q90      = _b['q90']       # 90th percentile of test residuals
+
+def _get_bundle():
+    global _bundle
+    if _bundle is None:
+        model_path = ROOT / 'models' / 'progression_model.pkl'
+        if not model_path.exists():
+            raise FileNotFoundError(
+                f"Model file not found at {model_path}. "
+                "Run `python scripts/train_progression_model.py` first."
+            )
+        with open(model_path, 'rb') as f:
+            _bundle = pickle.load(f)
+    return _bundle
 
 
 EXPLAINER = (
@@ -28,20 +37,38 @@ EXPLAINER = (
 )
 
 
-def _predict(age, bw, wilks_score, training_age, meets):
+def _predict(sex, age, bw, wilks_score, training_age, meets):
     """Predict 1-year total gain (kg) and an 80% prediction interval.
 
-    The interval is point + [q10, q90], where q10/q90 are the 10th and
-    90th percentiles of test-set residuals. This is not a ±σ range:
-    gains are right-skewed, so percentile residuals are the honest choice.
+    The interval is point + [q10, q90], using empirical test-set residual quantiles.
+    Sex-specific intervals are used when available.
     """
-    row = pd.DataFrame([{
-        'age': age, 'bodyweight': bw, 'wilks': wilks_score,
+    b = _get_bundle()
+    model = b['model']
+    features = b['features']
+
+    row_data = {
+        'age': age,
+        'bodyweight': bw,
+        'wilks': wilks_score,
         'training_age_years': training_age,
-        'meets_so_far': meets, 'days_to_next': 365.0,
-    }])[FEATURES]
-    point = float(MODEL.predict(row)[0])
-    return point, point + Q10, point + Q90
+        'meets_so_far': meets,
+        'days_to_next': 365.0,
+    }
+    if 'is_male' in features:
+        row_data['is_male'] = 1.0 if sex == 'M' else 0.0
+
+    row = pd.DataFrame([row_data])[features]
+    point = float(model.predict(row)[0])
+
+    if 'residuals_by_sex' in b and sex in b['residuals_by_sex']:
+        q10 = b['residuals_by_sex'][sex]['q10']
+        q90 = b['residuals_by_sex'][sex]['q90']
+    else:
+        q10 = b['q10']
+        q90 = b['q90']
+
+    return point, point + q10, point + q90
 
 
 @progress_bp.route('/progress')
@@ -80,7 +107,7 @@ def api_progress():
 
     w = wilks(sex, bw, total)
     d = dots(sex, bw, total)
-    point, lo, hi = _predict(age, bw, w, t_age, model_meets)
+    point, lo, hi = _predict(sex, age, bw, w, t_age, model_meets)
     pcts = percentiles_for(sex, age, w, d)
 
     return jsonify({

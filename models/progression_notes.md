@@ -14,34 +14,43 @@ Regression model predicting a lifter's one-year strength gain.
 
 ## Features
 
-| Feature | Rationale |
-|---------|-----------|
-| `age` | Progression slows with age. |
-| `bodyweight` | Heavier lifters add more absolute kg. |
-| `wilks` | Current bodyweight-adjusted strength. |
-| `training_age_years` | Years since first recorded meet (experience proxy). |
-| `meets_so_far` | Prior meets, 0-based. |
-| `days_to_next` | Time to next meet (365 for the app's 1-year forecast). |
+| Feature | Rationale | Unscaled Coefficient |
+|---------|-----------|----------------------|
+| `age` | Progression slows with age. | -0.6096 kg/year |
+| `bodyweight` | Marginal weight adjustment once Wilks is controlled for. | -0.0303 kg/kg |
+| `wilks` | Current bodyweight-adjusted strength (diminishing returns). | -0.1165 kg/point |
+| `training_age_years` | Years since first recorded meet (experience proxy). | -0.3948 kg/year |
+| `meets_so_far` | Prior meets (cumulative meet experience). | -0.0896 kg/meet |
+| `days_to_next` | Time to next meet (365 for the app's 1-year forecast). | +0.0173 kg/day (+6.3 kg/yr) |
+| `is_male` | Biological differences in absolute muscle/strength accrual. | +10.3910 kg |
+| *intercept* | Baseline regression constant. | +16.5796 kg |
 
 ## Split
 
 `GroupShuffleSplit` on `lifter_id`, 80/20. Split by **lifter**, not by row,
 to prevent leakage — the same person's meets must not appear in both train
 and test.
+- Train: 377,002 pairs
+- Test: 94,303 pairs
+- Total unique lifters: 119,354
 
 ## Metrics
 
-Reported against a **baseline** that always predicts the training-set
+Reported against a **naive baseline** that always predicts the training-set
 median `total_gain`. Without this, a low R² is uninterpretable.
 
-Baseline (median):  MAE = 21.76 kg  R² = -0.014
-Ridge pipeline:     MAE = 20.72 kg  R² = +0.115
-Improvement:        4.8% MAE reduction
+- Baseline (median):  MAE = 21.69 kg, R² = -0.015
+- Ridge pipeline:     MAE = 20.55 kg, R² = +0.129
+- Improvement:        5.3% MAE reduction
 
-Residual 10th pct: -31.20 kg
-Residual 90th pct: +30.98 kg
-Residual sigma:    30.51 kg
+### Residual Distribution & Prediction Intervals
+
+- Residual overall:   10th pct: -31.57 kg, 90th pct: +30.21 kg (sigma: 30.09 kg)
+- Residual Men (M):   10th pct: -35.54 kg, 90th pct: +34.43 kg
+- Residual Women (F): 10th pct: -23.78 kg, 90th pct: +23.38 kg
 
 The app's forecast is an **80% range** = `prediction + [q10, q90]`, not
-`±σ`. Gains are right-skewed and heteroscedastic, so a symmetric σ range
-would under-cover novices and over-cover intermediates.
+`±σ`. Gains are right-skewed and heteroscedastic, so empirical residual
+quantiles reflect true historical uncertainty. Sex-specific residual
+quantiles (`q10_m/q90_m` and `q10_f/q90_f`) ensure that female lifters
+are not given an unrealistically wide uncertainty band calibrated on men.

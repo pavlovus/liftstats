@@ -9,15 +9,23 @@ OUT = ROOT / 'data' / 'processed' / 'percentile_tables.parquet'
 
 
 def build():
+    print(f'Loading {IN}...')
     df = pd.read_csv(IN, low_memory=False)
+
+    # 1. Drop bad rows
     df = df.dropna(subset=['sex', 'age', 'bodyweight', 'wilks_score', 'dots_score'])
 
-    # Age brackets — match A's if they exist; otherwise define here
-    bins   = [0, 19, 23, 29, 39, 49, 59, 200]
-    labels = ['<20', '20-23', '24-29', '30-39', '40-49', '50-59', '60+']
-    df['age_bracket'] = pd.cut(df['age'], bins=bins, labels=labels)
+    # 2. Filter to full-power (SBD) meets so 3-lift totals aren't compared against single lifts
+    df = df[df['event'].astype(str).str.upper() == 'SBD'].copy()
+    print(f'Filtered to SBD full-power events: {len(df):,} rows')
 
-    # For each (sex, age_bracket), store the sorted score arrays
+    # 3. Align age brackets with Person A schema (14-19, 20-23, 24-29, 30-39, 40-49, 50+)
+    bins = [13, 19, 23, 29, 39, 49, 200]
+    labels = ['14-19', '20-23', '24-29', '30-39', '40-49', '50+']
+    df['age_bracket'] = pd.cut(df['age'], bins=bins, labels=labels)
+    df = df.dropna(subset=['age_bracket']).copy()
+
+    # 4. For each (sex, age_bracket), store sorted score arrays
     rows = []
     for (sex, bracket), grp in df.groupby(['sex', 'age_bracket'], observed=True):
         rows.append({

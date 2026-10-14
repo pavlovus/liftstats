@@ -7,10 +7,11 @@ progression views.
 
 Run the data and model steps from the repository root:
 
-1. `python download_data.py`
-2. `python preprocess.py`
+1. `python scripts/download_data.py`
+2. `python scripts/preprocess.py`
 3. `python scripts/build_longitudinal.py`
-4. `python scripts/train_progression_model.py`
+4. `python scripts/build_percentile_tables.py`
+5. `python scripts/train_progression_model.py`
 
 ## Run the app
 

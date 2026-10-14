@@ -24,7 +24,7 @@ IN  = ROOT / 'data' / 'processed' / 'longitudinal.parquet'
 OUT = ROOT / 'models' / 'progression_model.pkl'
 
 FEATURES = ['age', 'bodyweight', 'wilks',
-            'training_age_years', 'meets_so_far', 'days_to_next']
+            'training_age_years', 'meets_so_far', 'days_to_next', 'is_male']
 TARGET = 'total_gain'
 
 
@@ -32,6 +32,9 @@ def train():
     print(f'Loading {IN}')
     df = pd.read_parquet(IN)
     print(f'Rows: {len(df):,}, lifters: {df["lifter_id"].nunique():,}')
+
+    # Add sex indicator (1 for M, 0 for F/other)
+    df['is_male'] = (df['sex'] == 'M').astype(float)
 
     df = df.dropna(subset=[TARGET] + FEATURES).copy()
 
@@ -68,10 +71,18 @@ def train():
     pred = model.predict(X.iloc[te])
     r2_model = r2_score(y.iloc[te], pred)
 
-    # --- Residual distribution → prediction interval -----------------------
+    # --- Residual distribution → prediction intervals -----------------------
     residuals = y.iloc[te].values - pred
     q10, q90 = np.percentile(residuals, [10, 90])
     sigma = float(residuals.std())
+
+    # Sex-specific residual intervals
+    test_sex = df['sex'].iloc[te].values
+    m_mask = test_sex == 'M'
+    f_mask = test_sex == 'F'
+
+    q10_m, q90_m = np.percentile(residuals[m_mask], [10, 90]) if np.any(m_mask) else (q10, q90)
+    q10_f, q90_f = np.percentile(residuals[f_mask], [10, 90]) if np.any(f_mask) else (q10, q90)
 
     print(f'\nChosen alpha: {best_alpha}')
     print(f'Baseline (median):  MAE = {mae_baseline:.2f} kg  '
@@ -80,9 +91,9 @@ def train():
           f'R² = {r2_model:+.3f}')
     print(f'Improvement:        '
           f'{(1 - mae_model/mae_baseline)*100:.1f}% MAE reduction')
-    print(f'\nResidual 10th pct: {q10:+.2f} kg')
-    print(f'Residual 90th pct: {q90:+.2f} kg')
-    print(f'Residual sigma:    {sigma:.2f} kg')
+    print(f'\nResidual overall:  10th pct: {q10:+.2f} kg, 90th pct: {q90:+.2f} kg (sigma: {sigma:.2f} kg)')
+    print(f'Residual Men (M):  10th pct: {q10_m:+.2f} kg, 90th pct: {q90_m:+.2f} kg')
+    print(f'Residual Women (F):10th pct: {q10_f:+.2f} kg, 90th pct: {q90_f:+.2f} kg')
 
     # --- Interpretability: unscale coefficients ----------------------------
     scaler = model.named_steps['scaler']
@@ -105,6 +116,10 @@ def train():
             'baseline_median': baseline,
             'q10':             float(q10),
             'q90':             float(q90),
+            'residuals_by_sex': {
+                'M': {'q10': float(q10_m), 'q90': float(q90_m)},
+                'F': {'q10': float(q10_f), 'q90': float(q90_f)},
+            },
             'sigma':           sigma,
             'alpha':           float(best_alpha),
         }, f)
