@@ -8,6 +8,7 @@ data/processed/*
 
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!data/processed/percentile_tables.parquet
 
 # Python environment
 __pycache__/
@@ -21,11 +22,15 @@ env/
 # Jupyter Notebook
 .ipynb_checkpoints/
 *.ipynb
+!notebooks/eda.ipynb
 
 # Models
 models/*.pkl
 models/*.joblib
 models/*.h5
+!models/kmeans_archetypes.joblib
+!models/progression_model.pkl
+!models/cluster_profiles.csv
 
 # OS generated files
 .DS_Store
