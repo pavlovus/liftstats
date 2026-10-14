@@ -24,7 +24,7 @@ class PercentileEngine:
         
         print(f"[PercentileEngine] Ready! Loaded {len(self.df):,} records in memory.")
 
-    def get_percentile(self, lift_type, weight_lifted, sex, weight_class=None, age_bracket=None, tested_status=None):
+    def get_percentile(self, lift_type, weight_lifted, sex, weight_class=None, age_bracket=None, tested_status=None, sbd_only=False):
         """
         Calculates the percentile for a given lift.
         
@@ -35,6 +35,7 @@ class PercentileEngine:
         - weight_class: str or list (e.g., '90', or ['82.5', '83'] to combine federations)
         - age_bracket: str (e.g., '24-29', '30-39')
         - tested_status: bool (True for Tested, False for Untested/All)
+        - sbd_only: bool (if True, filters to full-power SBD meets only, excluding bench-only/deadlift-only specialists)
         
         Returns:
         - dict with percentile, population_size, median_lift, and max_lift
@@ -46,8 +47,8 @@ class PercentileEngine:
         mask = (self.df['sex'] == sex) & (self.df[lift_type].notna())
         
         # If calculating 'total' percentile, ONLY compare against full SBD meets.
-        # Otherwise, a 600kg SBD total would be unfairly compared against 150kg Bench-only totals.
-        if lift_type == 'total':
+        # If sbd_only is requested for single lifts, exclude single-lift specialists (e.g. Bench-Only).
+        if lift_type == 'total' or sbd_only:
             mask &= (self.df['event'] == 'SBD')
         
         if weight_class is not None:
@@ -77,9 +78,9 @@ class PercentileEngine:
         percentile = ((strict_count + 0.5 * tie_count) / population_size) * 100
         
         return {
-            "percentile": round(percentile, 1),
-            "population_size": population_size,
-            "median_lift": round(subset[lift_type].median(), 1),
+            "percentile": round(float(percentile), 1),
+            "population_size": int(population_size),
+            "median_lift": round(float(subset[lift_type].median()), 1),
             "max_lift": float(subset[lift_type].max())
         }
 

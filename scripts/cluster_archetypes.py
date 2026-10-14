@@ -188,7 +188,7 @@ def fit_one_sex(df: pd.DataFrame, sex: str, k_override: int | None):
             f"{r['deadlift_share']*100:.1f} | {int(r['n_lifters']):,} | {r['pct_tested']} | {r['median_bodyweight']} |"
         )
     md.append(
-        f"\nAverage {SEX_NAME[sex].lower()[:-1]}: squat {overall.squat_share*100:.1f}%, "
+        f"\nAverage {'man' if sex == 'M' else 'woman'}: squat {overall.squat_share*100:.1f}%, "
         f"bench {overall.bench_share*100:.1f}%, deadlift {overall.deadlift_share*100:.1f}%.\n"
     )
     print("\n".join(md))

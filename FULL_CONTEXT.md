@@ -106,6 +106,7 @@ These are still real data science work (statistics, not ML) and are core deliver
 - Percentile computation per lift, per age bracket, per weight class, per sex.
 - Distribution analysis: check and report shape of lift distributions (expect right-skew) — this is a real, reportable EDA finding.
 - Tested vs. untested percentile split (using the flag preserved during cleaning).
+- **Single-lift vs. Full-power (SBD) nuance:** For `total`, comparisons are strictly filtered to full-power meets (`event == 'SBD'`) to prevent comparing 3-lift totals against single-lift totals. For individual lifts (especially `bench`), the dataset contains ~414k Bench-Only entries alongside ~981k SBD entries. Bench specialists typically lift heavier because they don't conserve energy for squat and deadlift. This must be highlighted in the final report as an analytical nuance, and the backend/engine supports an optional `sbd_only` filter toggle so users can choose whether to benchmark against all competitive lifters or full-power tri-event lifters only.
 
 ### 6.2 Tested/Untested transparency toggle — owned by Person B
 Let the user see how their percentile shifts depending on whether untested-federation lifters are included. This directly demonstrates understanding of a real methodological choice (a talking point for the report/presentation).
@@ -165,6 +166,7 @@ After that, each person works a full vertical slice (their own data/ML logic + t
 3. The regression model's predictions are estimates based on population trends, not individualized coaching advice — the app should never claim clinical/medical precision.
 4. Clustering into archetypes is a simplification (real training styles are more nuanced than 3–4 clusters) — communicate cluster results as a rough, fun categorization, not a definitive label.
 5. **Survivorship Bias in Percentiles**: The dataset is heavily skewed by "one-meet wonders" who competed once and quit. The percentiles rank a user against *everyone who ever tried*, not just dedicated lifters.
+6. **Single-Lift Specialists vs. Full-Power Lifters (Event Type Bias)**: When calculating percentiles for individual lifts (especially the bench press), the dataset includes hundreds of thousands of single-lift competitors (e.g., ~414k Bench-Only lifters) who do not compete in the full squat-bench-deadlift tri-event. Specialist lifters generally achieve higher numbers than full-power athletes in that single discipline. Unless explicitly filtered by `event == 'SBD'`, single-lift percentiles compare recreational users against both all-around powerlifters and dedicated single-lift specialists.
 
 ---
 
