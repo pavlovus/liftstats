@@ -31,7 +31,10 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 
-from tested_toggle import CLEAN_CSV, PROJECT_ROOT
+try:
+    from .tested_toggle import CLEAN_CSV, PROJECT_ROOT
+except ImportError:
+    from tested_toggle import CLEAN_CSV, PROJECT_ROOT
 
 MODELS_DIR = PROJECT_ROOT / "models"
 FIG_DIR = PROJECT_ROOT / "notebooks" / "figures"
@@ -61,9 +64,16 @@ def build_lifter_table(df: pd.DataFrame) -> pd.DataFrame:
     return df.reset_index(drop=True)
 
 
-def prepare_features(path: Path = CLEAN_CSV) -> pd.DataFrame:
+def prepare_features(path: Path | None = None) -> pd.DataFrame:
     """One row per lifter (best full-power total) with each lift as a share of the S+B+D sum."""
-    df = build_lifter_table(pd.read_csv(path))
+    if path is None:
+        pq = PROJECT_ROOT / "data" / "processed" / "clean_data.parquet"
+        path = pq if pq.exists() else CLEAN_CSV
+    
+    if str(path).endswith(".parquet"):
+        df = build_lifter_table(pd.read_parquet(path))
+    else:
+        df = build_lifter_table(pd.read_csv(path))
 
     lift_sum = df["squat"] + df["bench"] + df["deadlift"]
     df = df[(lift_sum - df["total"]).abs() <= 2.5]

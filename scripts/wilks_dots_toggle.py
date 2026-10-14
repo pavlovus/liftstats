@@ -31,6 +31,7 @@ def _pct(score, arr):
 def percentiles_for(sex, age, wilks_score, dots_score):
     """Return dict with wilks_pct and dots_pct. Matches Person A's age brackets."""
     tables = _get_tables()
+    sex = str(sex).strip().upper()
 
     # Age bracket matching Person A's 14-19, 20-23, 24-29, 30-39, 40-49, 50+
     if age <= 19:   bracket = '14-19'

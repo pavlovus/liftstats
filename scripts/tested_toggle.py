@@ -15,7 +15,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from percentile_engine import PercentileEngine
+try:
+    from .percentile_engine import PercentileEngine
+except ImportError:
+    from percentile_engine import PercentileEngine
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CLEAN_CSV = PROJECT_ROOT / "data" / "processed" / "clean_data.csv"
@@ -39,14 +42,14 @@ def load_engine() -> PercentileEngine:
 
 def build_bucket_tables(df: pd.DataFrame, min_class_count: int = 1500) -> dict:
     tables = {}
-    for sex, g in df.groupby("sex"):
+    for sex, g in df.groupby("sex", observed=True):
         # Filter to legitimate standard weight classes with substantial sample size (>= min_class_count)
         # This removes tiny one-off divisions (e.g. 84.5, 85.7) that corrupt bucket matching
         wc_counts = g["weight_class"].value_counts()
         valid_classes = wc_counts[wc_counts >= min_class_count].index
 
         tables[sex] = {
-            "age_bracket": g.groupby("age_bracket")["age"].agg(["min", "max", "median"]),
+            "age_bracket": g.groupby("age_bracket", observed=True)["age"].agg(["min", "max", "median"]),
             "weight_classes": sorted([str(c) for c in valid_classes if str(c) not in ["+", "nan"]]),
         }
     return tables
@@ -86,7 +89,7 @@ def _match_weight_class(bw: float, available: list) -> str:
     plus.sort(key=lambda x: x[0])
 
     if regular and bw > regular[-1][0]:
-        for limit, name in plus:
+        for limit, name in reversed(plus):
             if bw > limit:
                 return name
         return plus[-1][1] if plus else regular[-1][1]
@@ -98,7 +101,7 @@ def _match_weight_class(bw: float, available: list) -> str:
     return regular[-1][1] if regular else "83"
 
 
-def _equivalent_classes(chosen: str, available, tol: float = 1.0) -> list:
+def _equivalent_classes(chosen: str, available, tol: float = 1.5) -> list:
     """Same class across federations, e.g. '83' (IPF) and '82.5' -> ['82.5', '83']."""
     c = _class_number(chosen)
     if c is None:

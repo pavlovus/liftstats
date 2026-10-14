@@ -9,8 +9,13 @@ OUT = ROOT / 'data' / 'processed' / 'percentile_tables.parquet'
 
 
 def build():
-    print(f'Loading {IN}...')
-    df = pd.read_csv(IN, low_memory=False)
+    pq_in = ROOT / 'data' / 'processed' / 'clean_data.parquet'
+    src = pq_in if pq_in.exists() else IN
+    print(f'Loading {src}...')
+    if str(src).endswith('.parquet'):
+        df = pd.read_parquet(src)
+    else:
+        df = pd.read_csv(src, low_memory=False)
 
     # 1. Drop bad rows
     df = df.dropna(subset=['sex', 'age', 'bodyweight', 'wilks_score', 'dots_score'])

@@ -100,6 +100,16 @@ def main():
     print(f"Saving to {OUTPUT_PATH}...")
     df_clean.to_csv(OUTPUT_PATH, index=False)
     
+    # 7. Save optimized Parquet for fast cold start (<0.2s) and low RAM footprint (~116MB)
+    PARQUET_PATH = 'data/processed/clean_data.parquet'
+    print(f"Saving optimized Parquet to {PARQUET_PATH}...")
+    df_pq = df_clean.copy()
+    for col in ['sex', 'age_bracket', 'weight_class', 'event']:
+        df_pq[col] = df_pq[col].astype('category')
+    for col in ['age', 'bodyweight', 'squat', 'bench', 'deadlift', 'total', 'wilks_score', 'dots_score']:
+        df_pq[col] = df_pq[col].astype('float32')
+    df_pq.to_parquet(PARQUET_PATH, index=False)
+    
     elapsed = time.time() - start_time
     print(f"Preprocessing completed in {elapsed:.1f} seconds.")
 

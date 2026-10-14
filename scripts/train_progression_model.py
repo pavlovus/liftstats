@@ -102,7 +102,8 @@ def train():
     print('\nCoefficients (unscaled space):')
     for f, c in zip(FEATURES, coefs_unscaled):
         print(f'  {f:22s} {c:+.4f}')
-    print(f'  {"intercept":22s} {ridge.intercept_:+.4f}')
+    intercept_unscaled = ridge.intercept_ - np.sum(coefs_unscaled * scaler.mean_)
+    print(f'  {"intercept":22s} {intercept_unscaled:+.4f}')
 
     # --- Save --------------------------------------------------------------
     OUT.parent.mkdir(parents=True, exist_ok=True)

@@ -13,8 +13,13 @@ INPUT_CSV = PROCESSED / 'clean_data.csv'
 OUT = PROCESSED / 'longitudinal.parquet'
 
 def build():
-    print(f'Loading {INPUT_CSV}')
-    df = pd.read_csv(INPUT_CSV, low_memory=False)
+    pq_in = PROCESSED / 'clean_data.parquet'
+    src = pq_in if pq_in.exists() else INPUT_CSV
+    print(f'Loading {src}')
+    if str(src).endswith('.parquet'):
+        df = pd.read_parquet(src)
+    else:
+        df = pd.read_csv(src, low_memory=False)
     print(f'Loaded {len(df):,} rows, {len(df.columns)} columns')
 
     # 1. Parse date & drop bad rows
