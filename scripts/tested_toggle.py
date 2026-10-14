@@ -26,6 +26,9 @@ MIN_PEERS = 50  # below this we refuse to show a percentile (too noisy)
 
 def load_engine() -> PercentileEngine:
     """Absolute path, so it works regardless of the current working directory."""
+    parquet_path = PROJECT_ROOT / "data" / "processed" / "clean_data.parquet"
+    if parquet_path.exists():
+        return PercentileEngine(data_path=str(parquet_path))
     return PercentileEngine(data_path=str(CLEAN_CSV))
 
 

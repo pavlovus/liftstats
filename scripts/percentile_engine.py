@@ -6,9 +6,18 @@ class PercentileEngine:
     Core Engine for calculating lift percentiles.
     Designed to be instantiated once at backend startup to keep data in memory.
     """
-    def __init__(self, data_path='data/processed/clean_data.csv'):
+    def __init__(self, data_path=None):
+        from pathlib import Path
+        if data_path is None:
+            pq = Path('data/processed/clean_data.parquet')
+            csv = Path('data/processed/clean_data.csv')
+            data_path = str(pq if pq.exists() else csv)
+            
         print(f"[PercentileEngine] Initializing... Loading data from {data_path}")
-        self.df = pd.read_csv(data_path, low_memory=False)
+        if str(data_path).endswith('.parquet'):
+            self.df = pd.read_parquet(data_path)
+        else:
+            self.df = pd.read_csv(data_path, low_memory=False)
         
         # Ensure weight_class is treated as string since it contains values like '120+'
         self.df['weight_class'] = self.df['weight_class'].astype(str)
@@ -83,7 +92,7 @@ if __name__ == '__main__':
     print("=== TESTING PERCENTILE ENGINE ===\n")
     
     start_load = time.time()
-    engine = PercentileEngine(data_path='data/processed/clean_data.csv')
+    engine = PercentileEngine()
     print(f"Loading took: {time.time() - start_load:.2f} seconds\n")
     
     test_cases = [
