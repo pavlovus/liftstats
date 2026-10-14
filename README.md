@@ -13,15 +13,23 @@ Run the data and model steps from the repository root:
 4. `python scripts/build_percentile_tables.py`
 5. `python scripts/train_progression_model.py`
 
-## Run the app
+## Run the backend (FastAPI)
 
-Install the app dependencies from `app/requirements.txt`, then start the Flask
-app from the `app/` directory:
+Install the dependencies from `requirements.txt`, then start the FastAPI
+server from the repository root:
 
 ```sh
 pip install -r requirements.txt
-python app.py
+uvicorn app.backend.main:app --reload --port 8000
 ```
 
-- Training type: <http://localhost:5000/training-type>
-- Progression: <http://localhost:5000/progress>
+- API Docs (Swagger UI): <http://localhost:8000/docs>
+- Health check: <http://localhost:8000/api/health>
+
+## Run the tests
+
+Run the test suite using pytest:
+
+```sh
+pytest tests/ -v
+```

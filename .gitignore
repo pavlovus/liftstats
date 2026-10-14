@@ -35,3 +35,7 @@ models/*.h5
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+.agents
+skills-lock.json
+.pytest_cache
