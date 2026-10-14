@@ -97,6 +97,11 @@ def test_full_analysis_endpoint(client):
     assert "deadlift" in data["percentiles"]
     assert "total" in data["percentiles"]
 
+    # Test that /api/analyze/full alias works identically
+    res_full = client.post("/api/analyze/full", json=payload)
+    assert res_full.status_code == 200
+    assert res_full.json()["total"] == data["total"]
+
 def test_validation_errors(client):
     # Age too low (< 14)
     res1 = client.post("/api/percentiles", json={

@@ -19,6 +19,7 @@ from app.backend.services.progression_service import analyze_progression
 router = APIRouter(tags=["Full Analysis"])
 
 @router.post("/analyze", response_model=FullAnalysisResponse)
+@router.post("/analyze/full", response_model=FullAnalysisResponse)
 def analyze_all(
     req: FullAnalysisRequest,
     df: pd.DataFrame = Depends(get_df),
