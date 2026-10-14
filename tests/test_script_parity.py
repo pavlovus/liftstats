@@ -97,3 +97,26 @@ def test_parity_wilks_dots_and_percentiles():
                 assert p_script["wilks_pct"] == p_backend["wilks_pct"]
                 assert p_script["dots_pct"] == p_backend["dots_pct"]
                 assert p_script["n"] == p_backend["n"]
+
+def test_parity_archetype_clustering():
+    """Verify that archetype classification produces valid labels and shares matching the trained kmeans bundle."""
+    import joblib
+    from app.backend.services.archetype_service import classify_archetype
+    from app.backend.config import KMEANS_MODEL_PATH
+
+    bundle = joblib.load(KMEANS_MODEL_PATH)
+    for sex in ["M", "F"]:
+        b = bundle[sex]
+        for sq, bp, dl in [
+            (220.0, 100.0, 240.0),
+            (140.0, 160.0, 180.0),
+            (180.0, 120.0, 220.0),
+        ]:
+            res = classify_archetype(bundle, sex, sq, bp, dl)
+            tot = sq + bp + dl
+            assert res["label"] in b["labels"].values()
+            assert len(res["user_shares"]) == 3
+            assert round(sum(res["user_shares"]), 0) == 100
+            assert round(res["user_shares"][0], 1) == round(sq / tot * 100, 1)
+            assert round(res["user_shares"][1], 1) == round(bp / tot * 100, 1)
+            assert round(res["user_shares"][2], 1) == round(dl / tot * 100, 1)

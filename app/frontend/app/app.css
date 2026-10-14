@@ -1,0 +1,314 @@
+@import "tailwindcss";
+
+@theme {
+  /* Fonts */
+  --font-sans: "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Martian Mono", monospace;
+
+  /* Raw Industrial / Chalk & Steel Palette */
+  --color-iron-950: #08090a;
+  --color-iron-900: #101216;
+  --color-iron-850: #15181e;
+  --color-iron-800: #1c2027;
+  --color-iron-700: #292e38;
+
+  --color-steel-border: #222630;
+  --color-steel-border-light: #323846;
+  --color-steel-muted: #646c7c;
+
+  --color-chalk-white: #f4f4f6;
+  --color-chalk-muted: #9aa1af;
+  --color-chalk-dim: #788091;
+
+  /* Competition Plate Accents */
+  --color-plate-red: #ef4444;    /* Squat / 25kg */
+  --color-plate-blue: #3b82f6;   /* Bench / 20kg */
+  --color-plate-amber: #f59e0b;  /* Deadlift / 15kg */
+  --color-plate-green: #10b981;  /* Total / Progression */
+
+  /* Timing Functions (emil-design-eng) */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Base styles and mobile-native rules */
+html {
+  background-color: var(--color-iron-950);
+  color: var(--color-chalk-white);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100dvh;
+  background-color: var(--color-iron-950);
+}
+
+/* Dynamic WebGL Grid Background styles */
+.grid-background-host {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* Subtle atmospheric vignette so central analytical cards stay visually grounded */
+.grid-background-host::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 35%, transparent 35%, rgba(8, 9, 10, 0.7) 100%);
+}
+
+.ideas-grid-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity;
+}
+
+.ideas-grid-canvas[data-ready="true"] {
+  opacity: 1;
+}
+
+.ideas-grid-static {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(circle at 50% 35%, black 20%, transparent 85%);
+  -webkit-mask-image: radial-gradient(circle at 50% 35%, black 20%, transparent 85%);
+}
+
+/* Accessible reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Ensure inputs never zoom in iOS Safari */
+input, textarea, select {
+  font-size: 16px;
+  font-family: inherit;
+}
+
+/* Remove number input spinner arrows */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Tabular numerals for all data numbers */
+.numeral {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Responsive control active press feedback */
+button, [role="button"], .tappable {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 120ms var(--ease-out), background-color 150ms ease, border-color 150ms ease;
+}
+
+button:active:not(:disabled), [role="button"]:active:not(:disabled), .tappable:active {
+  transform: scale(0.97);
+}
+
+/* Custom Chalk glow utility */
+.chalk-glow {
+  filter: drop-shadow(0 0 10px rgba(244, 244, 246, 0.45));
+}
+
+.knurl-border {
+  border: 1px solid var(--color-steel-border);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-iron-950);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-steel-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-steel-muted);
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Smooth Tab & Section Content Entrance */
+@keyframes viewFadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.view-enter {
+  animation: viewFadeSlide 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Floating number increment pulse */
+@keyframes floatFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.9);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-16px) scale(1);
+  }
+}
+
+.badge-float-up {
+  animation: floatFadeUp 450ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Laser Shimmer Effect for Plaque */
+.shimmer-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  pointer-events: none;
+  transition: left 0.75s ease;
+}
+
+.shimmer-card:hover::before {
+  left: 200%;
+}
+
+/* Clean export state for html-to-image (disables shimmer pseudo-element & transforms) */
+.exporting-clean,
+.exporting-clean * {
+  animation: none !important;
+  transition: none !important;
+}
+
+.exporting-clean::before,
+.exporting-clean::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Global Smooth Page & Element Entrance Animations */
+@keyframes enterFadeSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes enterScaleUp {
+  0% {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-enter {
+  animation: enterFadeSlideUp 340ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-enter-scale {
+  animation: enterScaleUp 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Staggered delay classes for organic cascading appearances */
+.delay-50 { animation-delay: 50ms; }
+.delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-250 { animation-delay: 250ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-350 { animation-delay: 350ms; }
+.delay-400 { animation-delay: 400ms; }
+
+/* Accessibility: Respect Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  .animate-enter,
+  .animate-enter-scale,
+  .view-enter,
+  .badge-float-up {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

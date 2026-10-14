@@ -115,3 +115,11 @@ def test_validation_errors(client):
         "sex": "X", "age": 25, "bodyweight": 80.0, "lift_type": "bench", "weight_lifted": 100.0
     })
     assert res3.status_code == 422
+
+def test_frontend_spa_serving(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "LiftStats" in response.text
+    assert "Martian+Mono" in response.text
+    assert "Onest" in response.text
+

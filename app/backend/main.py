@@ -2,8 +2,10 @@ import pickle
 from contextlib import asynccontextmanager
 import joblib
 import pandas as pd
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.backend.config import (
     PARQUET_DATA_PATH,
@@ -91,6 +93,11 @@ app.include_router(percentiles_router, prefix="/api")
 app.include_router(archetypes_router, prefix="/api")
 app.include_router(progression_router, prefix="/api")
 app.include_router(analyze_router, prefix="/api")
+
+# Mount static frontend build if it exists
+frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "build" / "client"
+if frontend_dist.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
 
 if __name__ == "__main__":
     import uvicorn
