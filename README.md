@@ -29,35 +29,38 @@ Standard strength standards in resistance training predominantly rely on arbitra
 
 ## ⚡ Quick Start
 
-### 1. Environment Setup
+### 🐳 Run with Docker (Recommended)
+The fastest way to launch the complete integrated application (React 19 SPA + FastAPI backend + trained ML models) in a single command:
+
 ```sh
-# Clone repository
+# Clone and enter repository
 git clone https://github.com/pavlovus/liftstats.git
 cd liftstats
 
-# Create virtual environment
+# Build and start container
+docker compose up --build
+```
+
+- **Web Dashboard**: [http://localhost:8000](http://localhost:8000)
+- **Interactive Swagger API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **API Health Check**: [http://localhost:8000/api/health](http://localhost:8000/api/health)
+
+---
+
+### 💻 Local Run (Without Docker)
+If you prefer running directly on your host machine:
+
+```sh
+# 1. Setup virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-```
 
-### 2. Launch Backend API
-```sh
+# 2. Launch unified server (serves both SPA frontend and REST API)
 uvicorn app.backend.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-- **Interactive Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Health Check**: [http://localhost:8000/api/health](http://localhost:8000/api/health)
 
-### 3. Launch Frontend Dashboard
-In a separate terminal:
-```sh
-cd app/frontend
-npm install
-npm run dev
-```
-Open [http://localhost:5173](http://localhost:5173) in your browser.
-
-> **Production Unified Serving**: Running `npm run build` inside `app/frontend` builds the client bundle. The FastAPI server will automatically detect and serve the compiled single-page application directly alongside `/api/*` endpoints from [http://localhost:8000](http://localhost:8000).
+Open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ---
 
@@ -242,33 +245,88 @@ curl -X POST "http://localhost:8000/api/analyze/full" \
 ```json
 {
   "total": 612.5,
-  "cohort": {
-    "sex": "M",
-    "weight_class": "83",
-    "age_bracket": "24-34",
-    "tested_status": true,
-    "population_size": 38452
-  },
   "percentiles": {
-    "total": { "percentile": 87.4 },
-    "squat": { "percentile": 85.1 },
-    "bench": { "percentile": 84.8 },
-    "deadlift": { "percentile": 89.2 }
+    "squat": {
+      "lift_type": "squat",
+      "user_weight": 210.0,
+      "percentile": 64.2,
+      "population_size": 23480,
+      "median_lift": 197.5,
+      "p25": 175.0,
+      "p50": 197.5,
+      "p75": 220.0,
+      "p90": 242.5,
+      "bins": [ ... ]
+    },
+    "bench": {
+      "lift_type": "bench",
+      "user_weight": 142.5,
+      "percentile": 65.4,
+      "population_size": 29245,
+      "median_lift": 132.5,
+      "p25": 115.0,
+      "p50": 132.5,
+      "p75": 150.0,
+      "p90": 165.0,
+      "bins": [ ... ]
+    },
+    "deadlift": {
+      "lift_type": "deadlift",
+      "user_weight": 260.0,
+      "percentile": 80.7,
+      "population_size": 25156,
+      "median_lift": 230.0,
+      "p25": 205.0,
+      "p50": 230.0,
+      "p75": 252.5,
+      "p90": 275.0,
+      "bins": [ ... ]
+    },
+    "total": {
+      "lift_type": "total",
+      "user_weight": 612.5,
+      "percentile": 73.4,
+      "population_size": 23362,
+      "median_lift": 557.5,
+      "p25": 497.5,
+      "p50": 557.5,
+      "p75": 615.0,
+      "p90": 670.0,
+      "bins": [ ... ]
+    }
   },
   "archetype": {
-    "cluster_id": 0,
     "label": "Deadlift-dominant",
-    "proportions": { "squat": 0.343, "bench": 0.233, "deadlift": 0.424 },
-    "cohort_mean": { "squat": 0.353, "bench": 0.236, "deadlift": 0.411 }
+    "user_shares": [34.3, 23.3, 42.4],
+    "cluster_shares": [33.7, 22.2, 44.1],
+    "all_clusters": {
+      "Deadlift-dominant": [33.7, 22.2, 44.1],
+      "Squat-dominant": [37.5, 22.5, 40.0],
+      "Bench-specialist": [34.2, 26.6, 39.2]
+    },
+    "toggle": {
+      "lift": "total",
+      "value": 612.5,
+      "age_bracket": "24-29",
+      "weight_class": "82.5/83",
+      "views": {
+        "all": { "n": 27807, "percentile": 74.1 },
+        "tested": { "n": 23362, "percentile": 73.4 },
+        "untested": { "n": 4445, "percentile": 77.4 }
+      },
+      "explainer": "It barely changes for you: 74th percentile against everyone, 73rd against drug-tested lifters only..."
+    }
   },
   "progression": {
-    "predicted_1yr_gain_kg": 18.2,
-    "lower_80_kg": -17.0,
-    "upper_80_kg": 53.0,
+    "total": 612.5,
+    "point": 16.3,
+    "lo": -18.9,
+    "hi": 51.1,
     "views": {
-      "dots": { "score": 421.8, "percentile": 88.3 },
-      "wilks": { "score": 418.5, "percentile": 87.9 }
-    }
+      "wilks": { "score": 408.8, "percentile": 67.7, "n": 145966 },
+      "dots": { "score": 413.5, "percentile": 68.7, "n": 145966 }
+    },
+    "explainer": "Wilks (1990s) and DOTS (2010s) both adjust your total for bodyweight..."
   }
 }
 ```

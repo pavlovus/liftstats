@@ -1,0 +1,36 @@
+# Git & IDE
+.git
+.gitignore
+.agents
+skills-lock.json
+.DS_Store
+.DS_Store?
+._*
+
+# Python caches and virtualenvs
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.pytest_cache/
+tests/
+
+# Node & Frontend build artifacts
+node_modules/
+app/frontend/node_modules/
+app/frontend/.react-router/
+app/frontend/build/
+
+# Heavy raw and temporary data files
+data/raw/
+data/processed/*.csv
+data/processed/longitudinal.parquet
+*.zip
+*.tsv
+
+# Notebooks & documentation not needed in runtime container
+notebooks/
+FULL_CONTEXT.md
+LICENSE
