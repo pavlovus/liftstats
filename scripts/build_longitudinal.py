@@ -25,13 +25,18 @@ def build():
     df = df[df['event'].astype(str).str.upper() == 'SBD'].copy()
     print(f'After SBD filter: {len(df):,} rows')
 
-    # 3. Sort by lifter and date
-    df = df.sort_values(['lifter_id', 'date'])
+    # 3. Deduplicate multiple division entries on the same meet date (e.g. Open + Juniors)
+    # Keeping the entry with the highest total on that competition date
+    df = df.sort_values(['lifter_id', 'date', 'total'], ascending=[True, True, False])
+    before_dedup = len(df)
+    df = df.drop_duplicates(subset=['lifter_id', 'date'], keep='first').copy()
+    print(f'Deduplicated same-day entries: dropped {before_dedup - len(df):,} duplicates '
+          f'({len(df):,} unique meet dates remaining)')
 
     # 4. Reuse A's precomputed scores (renamed for convenience)
     df = df.rename(columns={'wilks_score': 'wilks', 'dots_score': 'dots'})
 
-    # 5. Survivorship filter: 3+ meets per lifter
+    # 5. Survivorship filter: 3+ unique meet dates per lifter
     counts = df.groupby('lifter_id')['date'].transform('count')
     df = df[counts >= 3].copy()
     print(f'After 3+ meet filter: {len(df):,} rows, '

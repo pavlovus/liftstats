@@ -34,12 +34,17 @@ def load_engine() -> PercentileEngine:
 # Bin edges live in the data, so we recover each bucket's observed [min, max] range once
 # at startup and assign the user to the closest range.
 
-def build_bucket_tables(df: pd.DataFrame) -> dict:
+def build_bucket_tables(df: pd.DataFrame, min_class_count: int = 1500) -> dict:
     tables = {}
     for sex, g in df.groupby("sex"):
+        # Filter to legitimate standard weight classes with substantial sample size (>= min_class_count)
+        # This removes tiny one-off divisions (e.g. 84.5, 85.7) that corrupt bucket matching
+        wc_counts = g["weight_class"].value_counts()
+        valid_classes = wc_counts[wc_counts >= min_class_count].index
+
         tables[sex] = {
             "age_bracket": g.groupby("age_bracket")["age"].agg(["min", "max", "median"]),
-            "weight_class": g.groupby("weight_class")["bodyweight"].agg(["min", "max", "median"]),
+            "weight_classes": sorted([str(c) for c in valid_classes if str(c) not in ["+", "nan"]]),
         }
     return tables
 
@@ -60,6 +65,36 @@ def _class_number(label: str):
         return None
 
 
+def _match_weight_class(bw: float, available: list) -> str:
+    """Match lifter bodyweight to the appropriate competition weight class."""
+    regular, plus = [], []
+    for c in available:
+        if c.endswith("+"):
+            try:
+                plus.append((float(c.rstrip("+")), c))
+            except ValueError:
+                pass
+        else:
+            try:
+                regular.append((float(c), c))
+            except ValueError:
+                pass
+    regular.sort(key=lambda x: x[0])
+    plus.sort(key=lambda x: x[0])
+
+    if regular and bw > regular[-1][0]:
+        for limit, name in plus:
+            if bw > limit:
+                return name
+        return plus[-1][1] if plus else regular[-1][1]
+
+    # Find the lowest class limit where bw <= limit (with 0.05kg tolerance for weigh-in precision)
+    candidates = [c for c in regular if bw <= c[0] + 0.05]
+    if candidates:
+        return candidates[0][1]
+    return regular[-1][1] if regular else "83"
+
+
 def _equivalent_classes(chosen: str, available, tol: float = 1.0) -> list:
     """Same class across federations, e.g. '83' (IPF) and '82.5' -> ['82.5', '83']."""
     c = _class_number(chosen)
@@ -70,7 +105,7 @@ def _equivalent_classes(chosen: str, available, tol: float = 1.0) -> list:
         n = _class_number(label)
         if n is not None and n[1] == c[1] and abs(n[0] - c[0]) <= tol:
             out.append(label)
-    return out or [chosen]
+    return sorted(out or [chosen])
 
 
 # ---------- explanation text ----------
@@ -117,8 +152,8 @@ def tested_toggle(engine: PercentileEngine, buckets: dict, sex: str, age: float,
 
     t = buckets[sex]
     bracket = _nearest_bucket(t["age_bracket"], age)
-    wclass = _nearest_bucket(t["weight_class"], bodyweight)
-    classes = _equivalent_classes(wclass, list(t["weight_class"].index))
+    wclass = _match_weight_class(bodyweight, t["weight_classes"])
+    classes = _equivalent_classes(wclass, t["weight_classes"])
 
     views = {}
     for name, status in (("all", None), ("tested", True), ("untested", False)):

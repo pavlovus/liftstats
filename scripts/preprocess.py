@@ -59,6 +59,10 @@ def main():
     for col in ['squat', 'bench', 'deadlift', 'total']:
         df_clean[col] = df_clean[col].apply(lambda x: np.nan if x < 0 else x)
 
+    # Standardize and clean weight_class (strip spaces, remove leading minus, clean invalid placeholders)
+    wc = df_clean['weight_class'].astype(str).str.strip().str.lstrip('-')
+    df_clean['weight_class'] = wc.replace({'+': np.nan, 'nan': np.nan, '': np.nan})
+
     df_clean = df_clean.dropna(subset=['bodyweight'])
 
     # 4. Age Imputation and Bucketing

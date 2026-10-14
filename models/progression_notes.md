@@ -16,38 +16,38 @@ Regression model predicting a lifter's one-year strength gain.
 
 | Feature | Rationale | Unscaled Coefficient |
 |---------|-----------|----------------------|
-| `age` | Progression slows with age. | -0.6096 kg/year |
-| `bodyweight` | Marginal weight adjustment once Wilks is controlled for. | -0.0303 kg/kg |
-| `wilks` | Current bodyweight-adjusted strength (diminishing returns). | -0.1165 kg/point |
-| `training_age_years` | Years since first recorded meet (experience proxy). | -0.3948 kg/year |
-| `meets_so_far` | Prior meets (cumulative meet experience). | -0.0896 kg/meet |
-| `days_to_next` | Time to next meet (365 for the app's 1-year forecast). | +0.0173 kg/day (+6.3 kg/yr) |
-| `is_male` | Biological differences in absolute muscle/strength accrual. | +10.3910 kg |
-| *intercept* | Baseline regression constant. | +16.5796 kg |
+| `age` | Progression slows with age. | -0.6039 kg/year |
+| `bodyweight` | Marginal weight adjustment once Wilks is controlled for. | -0.0294 kg/kg |
+| `wilks` | Current bodyweight-adjusted strength (diminishing returns). | -0.1149 kg/point |
+| `training_age_years` | Years since first recorded meet (experience proxy). | -0.2666 kg/year |
+| `meets_so_far` | Prior meets (cumulative unique meet experience). | -0.2086 kg/meet |
+| `days_to_next` | Time to next meet (365 for the app's 1-year forecast). | +0.0168 kg/day (+6.1 kg/yr) |
+| `is_male` | Biological differences in absolute muscle/strength accrual. | +10.1641 kg |
+| *intercept* | Baseline regression constant. | +16.3989 kg |
 
 ## Split
 
 `GroupShuffleSplit` on `lifter_id`, 80/20. Split by **lifter**, not by row,
 to prevent leakage — the same person's meets must not appear in both train
 and test.
-- Train: 377,002 pairs
-- Test: 94,303 pairs
-- Total unique lifters: 119,354
+- Train: 371,146 pairs
+- Test: 92,889 pairs
+- Total unique lifters: 112,069 (after deduplicating same-day division entries)
 
 ## Metrics
 
 Reported against a **naive baseline** that always predicts the training-set
 median `total_gain`. Without this, a low R² is uninterpretable.
 
-- Baseline (median):  MAE = 21.69 kg, R² = -0.015
-- Ridge pipeline:     MAE = 20.55 kg, R² = +0.129
-- Improvement:        5.3% MAE reduction
+- Baseline (median):  MAE = 21.67 kg, R² = -0.015
+- Ridge pipeline:     MAE = 20.46 kg, R² = +0.130
+- Improvement:        5.6% MAE reduction
 
 ### Residual Distribution & Prediction Intervals
 
-- Residual overall:   10th pct: -31.57 kg, 90th pct: +30.21 kg (sigma: 30.09 kg)
-- Residual Men (M):   10th pct: -35.54 kg, 90th pct: +34.43 kg
-- Residual Women (F): 10th pct: -23.78 kg, 90th pct: +23.38 kg
+- Residual overall:   10th pct: -31.26 kg, 90th pct: +30.44 kg (sigma: 30.02 kg)
+- Residual Men (M):   10th pct: -35.21 kg, 90th pct: +34.77 kg
+- Residual Women (F): 10th pct: -23.54 kg, 90th pct: +23.04 kg
 
 The app's forecast is an **80% range** = `prediction + [q10, q90]`, not
 `±σ`. Gains are right-skewed and heteroscedastic, so empirical residual

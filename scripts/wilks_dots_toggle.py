@@ -22,8 +22,10 @@ def _get_tables():
 
 
 def _pct(score, arr):
-    """Percentile rank: fraction of arr below score, in %."""
-    return float(np.searchsorted(arr, score, side='right') / len(arr) * 100)
+    """Percentile rank using mid-rank (average of strict and weak), matching Person A."""
+    left = np.searchsorted(arr, score, side='left')
+    right = np.searchsorted(arr, score, side='right')
+    return float((left + right) / (2.0 * len(arr)) * 100)
 
 
 def percentiles_for(sex, age, wilks_score, dots_score):
