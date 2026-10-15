@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { FullAnalysisResponse } from "../../types/api";
 import { TufteHistogram } from "../visual/TufteHistogram";
 import { StatValue } from "../visual/StatValue";
-import { Trophy, TrendingUp, Award, Activity, ShieldCheck, ShieldAlert, Layers } from "lucide-react";
+import { Trophy, TrendingUp, Award, Activity, ShieldCheck, ShieldAlert, Layers, Scale } from "lucide-react";
 
 interface OverviewTabProps {
   response: FullAnalysisResponse;
@@ -10,13 +10,15 @@ interface OverviewTabProps {
 
 export function OverviewTab({ response }: OverviewTabProps) {
   const [selectedLift, setSelectedLift] = useState<"total" | "squat" | "bench" | "deadlift">("total");
+  const [selectedFormula, setSelectedFormula] = useState<"wilks" | "dots">("dots");
 
-  const { total, percentiles, archetype } = response;
+  const { total, percentiles, archetype, progression } = response;
   const currentLiftData = percentiles[selectedLift];
   const totalData = percentiles.total;
 
   const totalPercentile = totalData?.percentile ?? 50;
   const toggle = archetype?.toggle;
+  const formulaData = progression?.views?.[selectedFormula] || { score: 0, percentile: null, n: 0 };
 
   return (
     <div className="flex flex-col gap-6 view-enter">
@@ -303,6 +305,99 @@ export function OverviewTab({ response }: OverviewTabProps) {
             data={currentLiftData}
             title={`${selectedLift.toUpperCase()} DISTRIBUTION`}
           />
+        </div>
+      )}
+
+      {/* Bodyweight Scaling Coefficients: Wilks vs. DOTS */}
+      {progression?.views && (
+        <div className="p-5 sm:p-6 bg-[var(--color-iron-900)] border border-[var(--color-steel-border)] rounded-2xl flex flex-col gap-4 shadow-lg animate-enter delay-250">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--color-steel-border)]">
+            <div className="flex items-center gap-2">
+              <Scale className="w-4 h-4 text-[var(--color-plate-amber)]" />
+              <h3 className="font-mono text-xs uppercase tracking-wider text-white font-bold">
+                Bodyweight Scaling Coefficients (All-Weight Division Standings)
+              </h3>
+            </div>
+
+            {/* Toggle pill */}
+            <div className="relative flex items-center p-1 rounded-lg bg-[var(--color-iron-800)] border border-[var(--color-steel-border)] self-start sm:self-auto">
+              <div
+                className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-md bg-white shadow-sm pointer-events-none transition-transform duration-[400ms] ease-[cubic-bezier(0.2,0.9,0.3,1)] motion-reduce:transition-none ${
+                  selectedFormula === "dots" ? "translate-x-0" : "translate-x-full"
+                }`}
+                style={{ left: "4px" }}
+              />
+              <button
+                type="button"
+                id="btn-formula-dots"
+                onClick={() => setSelectedFormula("dots")}
+                className={`relative z-10 px-3 py-1 rounded-md font-mono text-xs uppercase transition-colors duration-[300ms] cursor-pointer active:scale-[0.98] ${
+                  selectedFormula === "dots"
+                    ? "text-black font-bold"
+                    : "text-[var(--color-chalk-muted)] hover:text-white"
+                }`}
+              >
+                DOTS Formula
+              </button>
+              <button
+                type="button"
+                id="btn-formula-wilks"
+                onClick={() => setSelectedFormula("wilks")}
+                className={`relative z-10 px-3 py-1 rounded-md font-mono text-xs uppercase transition-colors duration-[300ms] cursor-pointer active:scale-[0.98] ${
+                  selectedFormula === "wilks"
+                    ? "text-black font-bold"
+                    : "text-[var(--color-chalk-muted)] hover:text-white"
+                }`}
+              >
+                Wilks Formula
+              </button>
+            </div>
+          </div>
+
+          {/* Selected Formula Breakdown */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div className="p-4 rounded-xl bg-[var(--color-iron-850)] border border-[var(--color-steel-border)] flex flex-col gap-2">
+              <span className="font-mono text-xs text-[var(--color-chalk-dim)] uppercase block">
+                {selectedFormula.toUpperCase()} Score
+              </span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl sm:text-3xl font-extrabold font-mono text-white">
+                  <StatValue value={formulaData.score} decimals={1} />
+                </span>
+                <span className="font-mono text-xs text-[var(--color-chalk-muted)]">points</span>
+              </div>
+              <span className="font-mono text-[11px] text-[var(--color-chalk-dim)]">
+                Bodyweight-adjusted strength rating
+              </span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[var(--color-iron-850)] border border-[var(--color-steel-border)] flex flex-col gap-2">
+              <span className="font-mono text-xs text-[var(--color-chalk-dim)] uppercase block">
+                National Percentile by {selectedFormula.toUpperCase()}
+              </span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl sm:text-3xl font-extrabold font-mono text-[var(--color-plate-amber)]">
+                  {formulaData.percentile !== null && formulaData.percentile !== undefined ? (
+                    <StatValue value={formulaData.percentile} decimals={0} suffix="%" />
+                  ) : (
+                    "N/A"
+                  )}
+                </span>
+                <span className="font-mono text-xs text-[var(--color-chalk-muted)]">
+                  ({formulaData.n.toLocaleString()} lifters)
+                </span>
+              </div>
+              <span className="font-mono text-[11px] text-[var(--color-chalk-dim)]">
+                Across all weight categories combined
+              </span>
+            </div>
+          </div>
+
+          <p className="text-xs text-[var(--color-chalk-dim)] italic leading-relaxed">
+            {selectedFormula === "dots"
+              ? "DOTS (Dynamic Objective Team Scoring) is the modern standard used by the IPF and WRPF since 2019, eliminating the bias Wilks had toward middleweight lifters."
+              : "Wilks is the legacy 1997 formula. It provides historic comparability across decades of powerlifting meets, but mildly penalizes extreme lightweight and superheavyweight competitors."}
+          </p>
         </div>
       )}
 
