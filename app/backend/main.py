@@ -34,10 +34,14 @@ async def lifespan(app: FastAPI):
     # 1. Load clean competition dataset (Parquet preferred for speed & memory)
     data_path = PARQUET_DATA_PATH if PARQUET_DATA_PATH.exists() else CSV_DATA_PATH
     print(f"[Lifespan] Loading dataset from {data_path}...")
+    inference_cols = [
+        "sex", "age", "age_bracket", "bodyweight", "weight_class",
+        "squat", "bench", "deadlift", "total", "event", "tested_status"
+    ]
     if str(data_path).endswith(".parquet"):
-        df = pd.read_parquet(data_path)
+        df = pd.read_parquet(data_path, columns=inference_cols)
     else:
-        df = pd.read_csv(data_path, low_memory=False)
+        df = pd.read_csv(data_path, usecols=inference_cols, low_memory=False)
 
     df["weight_class"] = df["weight_class"].astype(str)
     app.state.df = df
@@ -101,4 +105,6 @@ if frontend_dist.exists():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.backend.main:app", host="0.0.0.0", port=8000, reload=True)
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app.backend.main:app", host="0.0.0.0", port=port, reload=True)

@@ -8,6 +8,7 @@ data/processed/*
 
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!data/processed/clean_data.parquet
 !data/processed/percentile_tables.parquet
 
 # Python environment
