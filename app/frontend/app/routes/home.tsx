@@ -32,8 +32,25 @@ export function meta({ }: Route.MetaArgs) {
     {
       name: "description",
       content:
-        "Where do your squat, bench, and deadlift really rank? Instant, statistically grounded percentile benchmarking against 1,000,000+ real OpenPowerlifting competition attempts.",
+        "Where do your squat, bench, and deadlift really rank? Instant, statistically grounded percentile benchmarking against 1,550,000+ real OpenPowerlifting competition attempts.",
     },
+    { property: "og:site_name", content: "LiftStats" },
+    { property: "og:title", content: "LiftStats | Statistical Strength Benchmarking & ML Forecasting" },
+    {
+      property: "og:description",
+      content:
+        "Where do your squat, bench, and deadlift really rank? Instant, statistically grounded percentile benchmarking against 1.55M+ real competition attempts.",
+    },
+    { property: "og:image", content: "/og-image.png" },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+    { name: "twitter:title", content: "LiftStats | Statistical Strength Benchmarking & ML Forecasting" },
+    {
+      name: "twitter:description",
+      content:
+        "Instant, statistically grounded percentile benchmarking and longitudinal ML forecasting against 1.55M+ real competition attempts.",
+    },
+    { name: "twitter:image", content: "/og-image.png" },
   ];
 }
 

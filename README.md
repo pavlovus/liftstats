@@ -11,6 +11,10 @@
 [![PyArrow](https://img.shields.io/badge/PyArrow-15.0+-D22128.svg?logo=apache-arrow&logoColor=white)](https://arrow.apache.org/)
 [![Dataset](https://img.shields.io/badge/dataset-OpenPowerlifting-red.svg)](https://www.openpowerlifting.org/)
 
+<p align="center">
+  <img src="assets/thumbnail.png" alt="LiftStats Preview" width="100%" />
+</p>
+
 ---
 
 ## 🔬 Overview & Problem Formulation

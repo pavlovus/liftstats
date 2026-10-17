@@ -43,8 +43,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="color-scheme" content="dark" />
         <meta
           name="description"
-          content="LiftStats — Statistical Exploration and Strength Percentile Benchmarking based on 1M+ OpenPowerlifting records."
+          content="LiftStats — Statistical Strength Benchmarking, Biomechanical Archetypes, and ML Progression Forecasting based on 1.55M+ OpenPowerlifting records."
         />
+        <meta property="og:site_name" content="LiftStats" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="LiftStats | Statistical Strength Benchmarking & ML Forecasting" />
+        <meta property="og:description" content="Where do your squat, bench, and deadlift really rank? Instant, statistically grounded percentile benchmarking against 1.55M+ real OpenPowerlifting competition attempts." />
+        <meta property="og:image" content="/og-image.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="LiftStats — Statistical Strength Benchmarking and Progression Forecasting" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="LiftStats | Statistical Strength Benchmarking & ML Forecasting" />
+        <meta name="twitter:description" content="Where do your squat, bench, and deadlift really rank? Instant, statistically grounded percentile benchmarking against 1.55M+ real OpenPowerlifting competition attempts." />
+        <meta name="twitter:image" content="/og-image.png" />
         <title>LiftStats | Powerlifting Percentile Benchmarking</title>
         <Meta />
         <Links />
